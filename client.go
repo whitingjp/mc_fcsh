@@ -1,19 +1,19 @@
 package main
 
-import(
+import (
+	"bufio"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"fmt"
-	"strings"
-	"bufio"
-	"io"
 	"os"
 	"path"
+	"strings"
 )
 
 func main() {
 	log.Printf("Starting client.\n")
-	client := new (http.Client)
+	client := new(http.Client)
 	file := os.Args[1]
 	if !path.IsAbs(file) {
 		wd, _ := os.Getwd()
@@ -27,8 +27,7 @@ func main() {
 		str, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
-		} else
-		{
+		} else {
 			fmt.Print(str)
 		}
 	}
