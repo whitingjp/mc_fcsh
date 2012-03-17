@@ -66,11 +66,9 @@ func waitForPrompt(out io.Writer) {
 	for {
 		str, _ := buf_r.ReadString(')')
 		fmt.Fprint(out, str)
-		fmt.Print(str)
 		length := len(str)
 		if length > 6 && str[length-6:] == "(fcsh)" {
 			fmt.Fprint(out, "\n")
-			fmt.Print("\n")
 			log.Print("Finished waiting\n")
 			break
 		}
