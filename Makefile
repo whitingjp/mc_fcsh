@@ -1,12 +1,12 @@
-all: bindir bin/fcsh_wrap.exe bin/fcsh_server.exe
+all: bindir bin/mc_fcsh bin/dj_fcsh
 clean:
 	rm -rf bin
 bindir:
 	mkdir -p bin
-bin/fcsh_wrap.exe: client.go
+bin/mc_fcsh: mc_fcsh.go
 	go build -o $@ $^
-bin/fcsh_server.exe: server.go
+bin/dj_fcsh: dj_fcsh.go
 	go build -o $@ $^
 format:
-	gofmt -w client.go
-	gofmt -w server.go
+	gofmt -w mc_fcsh.go
+	gofmt -w dj_fcsh.go
