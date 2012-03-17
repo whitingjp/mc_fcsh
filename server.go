@@ -46,12 +46,19 @@ func Compiler() {
 }
 
 func Compile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		fmt.Fprint(w, "Please send requests via POST")
+		return
+	}
+
 	log.Print("Handling client.\n")
 	
-	args := "H:/work/scraps/code/notzelda/main.mxml"	 
+	reader := bufio.NewReader(r.Body)
+	args, _ := reader.ReadString('\n')//  
     back := make(chan int)
 	channel <- CompData{args: args, out: w, back: back};
 	<-back
+	fmt.Fprint(w, "\n")
 }
 
 func waitForPrompt(out io.Writer) {
