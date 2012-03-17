@@ -4,55 +4,65 @@ import (
 	"log"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"bufio"
+	"io"
 )
+
+type CompData struct {
+	args string
+	out http.ResponseWriter
+	back chan int
+}
 
 var buf_r *bufio.Reader
 var buf_w *bufio.Writer
 var targets = make(map[string]int)
-var channel = make(chan string)
+var channel = make(chan CompData)
 
 func Compiler() {
 	for {
-		args := <-channel
-		log.Print("Channel recv")
+		data := <-channel
 		log.Print("write")
 
-		target, ok := targets[args]
+		target, ok := targets[data.args]
 		if ok {
 			fmt.Fprintf(buf_w, "compile %v\n", target)
 			buf_w.Flush()
 		} else {
-			fmt.Fprintf(buf_w, "mxmlc %v\n", args)
+			fmt.Fprintf(buf_w, "mxmlc %v\n", data.args)
 			buf_w.Flush()
 			str, _ := buf_r.ReadString('\n')
 			var i int
 			fmt.Sscanf(str, " fcsh: Assigned %v as the compiler target id\n", &i)
 			log.Print("Target ID:", i)
-			targets[args] = i
-		}
-		
+			targets[data.args] = i
+		}		
 
-		waitForPrompt()
+		waitForPrompt(data.out)
+		data.back <- 0
 	}
 }
 
 func Compile(w http.ResponseWriter, r *http.Request) {
 	log.Print("Handling client.\n")
-	fmt.Fprintf(w, "Hello. client!")
-	args := "H:/work/scraps/code/notzelda/main.mxml"	
-	channel <- args
-	log.Print("Channel send")
+	
+	args := "H:/work/scraps/code/notzelda/main.mxml"	 
+    back := make(chan int)
+	channel <- CompData{args: args, out: w, back: back};
+	<-back
 }
 
-func waitForPrompt() {
+func waitForPrompt(out io.Writer) {
 	log.Print("Waiting for prompt")
 	for {
 		str, _ := buf_r.ReadString(')')
+		fmt.Fprint(out, str)
 		fmt.Print(str)
 		length := len(str)
 		if(length > 6 && str[length-6:] == "(fcsh)") {
+			fmt.Fprint(out, "\n")
 			fmt.Print("\n")
 			log.Print("Finished waiting\n")
 			break;	
@@ -75,8 +85,8 @@ func main() {
 		log.Fatal("Could not start fcsh")
 	}
 	
-	waitForPrompt()
-	waitForPrompt()
+	waitForPrompt(os.Stdout)
+	waitForPrompt(os.Stdout)
 	
 	log.Print("Listening.\n")
 	http.HandleFunc("/compile", Compile)
