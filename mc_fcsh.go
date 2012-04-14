@@ -20,7 +20,8 @@ func main() {
 		file = wd + "/" + file
 	}
 	args := strings.Join(os.Args[2:], " ")
-	request, _ := http.NewRequest("POST", "http://localhost:7950/compile", strings.NewReader(file+args))
+	log.Printf("Sending cmd: '"+file+" "+args+"'\n")
+	request, _ := http.NewRequest("POST", "http://localhost:7950/compile", strings.NewReader(file+" "+args))
 	resp, _ := client.Do(request)
 	reader := bufio.NewReader(resp.Body)
 	for {
