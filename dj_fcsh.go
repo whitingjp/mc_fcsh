@@ -17,9 +17,11 @@ type CompData struct {
 }
 
 var buf_r *bufio.Reader
+var buf_e *bufio.Reader
 var buf_w *bufio.Writer
 var targets = make(map[string]int)
 var channel = make(chan CompData)
+var errChan = make(chan string)
 
 func Compiler() {
 	for {
@@ -54,10 +56,19 @@ func Compile(w http.ResponseWriter, r *http.Request) {
 	log.Print("Handling client.\n")
 
 	reader := bufio.NewReader(r.Body)
-	args, _ := reader.ReadString('\n') //  
+	args, _ := reader.ReadString('\n')
 	back := make(chan int)
 	channel <- CompData{args: args, out: w, back: back}
-	<-back
+	
+	running := true
+	for running {		
+		select {
+			case errString := <-errChan:
+				fmt.Fprint(w, errString)
+			case <-back:
+				running = false
+		}
+	}
 	fmt.Fprint(w, "\n")
 }
 
@@ -75,18 +86,29 @@ func waitForPrompt(out io.Writer) {
 	}
 }
 
+func readErrLines() {
+	for {
+		str, _ := buf_e.ReadString('\n')
+		errChan <- str
+	}
+}
+
 func main() {
 	log.Print("Starting server.\n")
-	go Compiler()
+	go Compiler()	
 
 	log.Print("Starting fcsh.\n")
 	cmd := exec.Command("fcsh")
 	in, _ := cmd.StdinPipe()
 	out, _ := cmd.StdoutPipe()
-	buf_r = bufio.NewReader(out)
+	err, _ := cmd.StderrPipe()
+	buf_r = bufio.NewReader(out)	
 	buf_w = bufio.NewWriter(in)
-
-	if err := cmd.Start(); err != nil {
+	buf_e = bufio.NewReader(err)
+	
+	go readErrLines()
+	
+	if error := cmd.Start(); error != nil {
 		log.Fatal("Could not start fcsh")
 	}
 
